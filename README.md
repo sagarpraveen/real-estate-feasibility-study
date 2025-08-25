@@ -1,5 +1,7 @@
 # Project: Mumbai Real Estate Feasibility Automation
 
+real estate feasibility study with a focus on the MCGM byelaws, Mumbai
+
 ## Objective
 To create a tool that calculates the core financial viability of a real estate project in Mumbai based on user-provided inputs.
 
