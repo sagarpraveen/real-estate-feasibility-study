@@ -12,6 +12,12 @@ except ImportError as exc:
 		"LangExtract is not installed. Please run: pip install -r requirements.txt"
 	) from exc
 
+# PDF support
+try:
+	from pypdf import PdfReader
+except Exception:
+	PdfReader = None  # Optional; we handle at runtime
+
 
 # Prefer user-provided model id; default to a local Ollama model
 DEFAULT_MODEL_ID = os.getenv("LANGEXTRACT_MODEL_ID", "llama3.2:1b")
@@ -76,6 +82,21 @@ def build_examples() -> List["lx.data.ExampleData"]:
 	return [lx.data.ExampleData(text=example_text, extractions=extractions)]
 
 
+def _read_text(input_path: Path) -> str:
+	if input_path.suffix.lower() == ".pdf":
+		if PdfReader is None:
+			raise SystemExit("pypdf not installed. Run: uv pip install -r requirements.txt")
+		reader = PdfReader(str(input_path))
+		pages = []
+		for page in reader.pages:
+			try:
+				pages.append(page.extract_text() or "")
+			except Exception:
+				pages.append("")
+		return "\n\n".join(pages)
+	return input_path.read_text(encoding="utf-8", errors="ignore")
+
+
 def extract(text: str, model_id: str = DEFAULT_MODEL_ID) -> Any:
 	prompt = build_prompt()
 	examples = build_examples()
@@ -114,7 +135,7 @@ def main() -> None:
 	if not input_path.exists():
 		raise SystemExit(f"Input text file not found: {input_path}")
 
-	text = input_path.read_text(encoding="utf-8")
+	text = _read_text(input_path)
 	result = extract(text)
 	jsonl_path = save_results(result, output_dir)
 	visualize(jsonl_path, output_html)
